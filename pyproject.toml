@@ -1,0 +1,18 @@
+[project]
+name = "omi"
+version = "0.1.0"
+description = ""
+authors = [
+    {name = "Konstantin Gnidko, greeny598@gmail.com"}
+]
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "uvicorn[standard] (>=0.40.0,<0.41.0)",
+    "fastapi (>=0.127.0,<0.128.0)"
+]
+
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
