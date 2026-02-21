@@ -5,6 +5,8 @@ description = ""
 authors = ["Konstantin Gnidko <greeny598@gmail.com>"]
 readme = "README.md"
 
+packages = [{ include = "app" }]
+
 [tool.poetry.dependencies]
 python = ">=3.10,<4.0"
 fastapi = "^0.127.0"
