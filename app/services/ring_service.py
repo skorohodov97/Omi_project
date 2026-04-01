@@ -13,7 +13,7 @@ def save_ring_file(device_id, file_bytes: bytes, db: Session):
     device_folder = BASE_RING_DIR / str(device_id)
     device_folder.mkdir(parents=True, exist_ok=True)
 
-    filename = f"{timestamp.timestamp()}.sqlite"
+    filename = f"{timestamp.timestamp()}.bin"
     file_path = device_folder / filename
 
     # сохраняем файл
