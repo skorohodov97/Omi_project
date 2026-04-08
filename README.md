@@ -70,3 +70,13 @@ cloudflared tunnel --url http://localhost:8000 --protocol http2
 
 Утстановка окружения:
 pip install -r requirements.txt
+
+
+Обновление на сервере:
+git fetch origin
+git reset --hard origin/main
+poetry install --no-root
+sudo systemctl restart omi-backend.service
+
+
+
