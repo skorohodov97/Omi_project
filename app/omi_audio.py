@@ -144,6 +144,13 @@ def _find_ffmpeg() -> str | None:
     if ffmpeg:
         return ffmpeg
 
+    try:
+        import imageio_ffmpeg
+
+        return imageio_ffmpeg.get_ffmpeg_exe()
+    except Exception:
+        pass
+
     local_app_data = os.environ.get("LOCALAPPDATA")
     if not local_app_data:
         return None
