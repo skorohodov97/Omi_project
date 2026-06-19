@@ -1,7 +1,11 @@
+from pathlib import Path
+
 from fastapi import APIRouter, Request, Depends, HTTPException
+from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 from uuid import UUID
 from app.db import get_db
+from app import models
 from app.omi_audio import OmiAudioError
 from app.services.audio_service import save_omi_opus_audio, save_pcm_audio
 
@@ -65,3 +69,46 @@ async def receive_omi_opus_audio(
         "file_path": record.file_path,
         **files
     }
+
+
+@router.get("/audio/device/{device_id}/files")
+def get_audio_files_by_device(device_id: UUID, db: Session = Depends(get_db)):
+    device = db.query(models.Device).filter(models.Device.id == device_id).first()
+
+    if not device:
+        raise HTTPException(404, "Device not found")
+
+    records = db.query(models.AudioRecord).filter(
+        models.AudioRecord.device_id == device_id
+    ).order_by(models.AudioRecord.created_at.desc()).all()
+
+    return [
+        {
+            "id": record.id,
+            "file_name": Path(record.file_path).name,
+            "created_at": record.created_at
+        }
+        for record in records
+    ]
+
+
+@router.get("/audio/files/{record_id}/download", response_class=FileResponse)
+def download_audio_file(record_id: UUID, db: Session = Depends(get_db)):
+    record = db.query(models.AudioRecord).filter(models.AudioRecord.id == record_id).first()
+
+    if not record:
+        raise HTTPException(404, "Audio file not found")
+
+    file_path = Path(record.file_path)
+
+    if file_path.suffix.lower() != ".wav":
+        raise HTTPException(400, "Only .wav audio files can be downloaded")
+
+    if not file_path.is_file():
+        raise HTTPException(404, "File is missing on disk")
+
+    return FileResponse(
+        path=file_path,
+        filename=file_path.name,
+        media_type="audio/wav"
+    )

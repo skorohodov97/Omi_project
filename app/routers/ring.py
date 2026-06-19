@@ -1,4 +1,7 @@
+from pathlib import Path
+
 from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 from uuid import UUID
 from app.db import get_db
@@ -35,3 +38,43 @@ async def receive_ring(
         "file_path": record.file_path,
         "file_size": record.file_size
     }
+
+
+@router.get("/ring/device/{device_id}/files")
+def get_ring_files_by_device(device_id: UUID, db: Session = Depends(get_db)):
+    device = db.query(models.Device).filter(models.Device.id == device_id).first()
+
+    if not device:
+        raise HTTPException(404, "Device not found")
+
+    records = db.query(models.RingRecord).filter(
+        models.RingRecord.device_id == device_id
+    ).order_by(models.RingRecord.created_at.desc()).all()
+
+    return [
+        {
+            "id": record.id,
+            "file_name": Path(record.file_path).name,
+            "created_at": record.created_at
+        }
+        for record in records
+    ]
+
+
+@router.get("/ring/files/{record_id}/download", response_class=FileResponse)
+def download_ring_file(record_id: UUID, db: Session = Depends(get_db)):
+    record = db.query(models.RingRecord).filter(models.RingRecord.id == record_id).first()
+
+    if not record:
+        raise HTTPException(404, "Ring file not found")
+
+    file_path = Path(record.file_path)
+
+    if not file_path.is_file():
+        raise HTTPException(404, "File is missing on disk")
+
+    return FileResponse(
+        path=file_path,
+        filename=file_path.name,
+        media_type="application/octet-stream"
+    )
