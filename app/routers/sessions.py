@@ -36,4 +36,8 @@ def finish_session(session_id: UUID, db: Session = Depends(get_db)):
 def route_events(device_id: UUID, day: str | None = None, db: Session = Depends(get_db)):
     q=db.query(models.FeatureWindow).join(models.RecordingSession).filter(models.RecordingSession.device_id==device_id)
     if day: q=q.filter(models.FeatureWindow.t_start >= datetime.fromisoformat(day), models.FeatureWindow.t_start < datetime.fromisoformat(day).replace(hour=23, minute=59, second=59))
-    return [{"id":str(w.id),"timestamp":w.t_start,"latitude":w.latitude,"longitude":w.longitude,"r1":w.r1,"r2":w.r2,"r3":w.r3,"risk":w.r_total,"heart_rate":w.heart_rate,"transcript":w.transcript,"comment":w.model_comment,"has_location":w.latitude is not None} for w in q.order_by(models.FeatureWindow.t_start.desc())]
+    result=[]
+    for w in q.order_by(models.FeatureWindow.t_start.desc()):
+        audio=db.query(models.AudioRecord).filter(models.AudioRecord.session_id == w.session_id).order_by(models.AudioRecord.created_at.desc()).first()
+        result.append({"id":str(w.id),"timestamp":w.t_start,"latitude":w.latitude,"longitude":w.longitude,"r1":w.r1,"r2":w.r2,"r3":w.r3,"risk":w.r_total,"heart_rate":w.heart_rate,"transcript":w.transcript or (audio.transcript_text if audio else ""),"comment":w.model_comment,"has_location":w.latitude is not None,"audio_url":f"/data/audio/files/{audio.id}/download" if audio and audio.file_path.endswith('.wav') else None})
+    return result

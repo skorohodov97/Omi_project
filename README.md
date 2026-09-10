@@ -78,5 +78,20 @@ git reset --hard origin/main
 poetry install --no-root
 sudo systemctl restart omi-backend.service
 
+## Обновление схемы маршрута без удаления данных
+
+После получения новой версии кода примените миграцию один раз (имя БД и пользователь
+соответствуют `app/config.py`):
+
+```bash
+psql -h localhost -U omi_user -d omi_db -f migrations/001_route_sessions.sql
+poetry install --no-root
+sudo systemctl restart omi-backend.service
+curl http://127.0.0.1:8000/health
+```
+
+Миграция идемпотентна: добавляет сессии, GPS, samples и окна событий, но не удаляет
+старые `audio_records` и `ring_records`.
+
 
 
