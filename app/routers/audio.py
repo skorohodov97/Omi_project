@@ -8,6 +8,7 @@ from app.db import get_db
 from app import models
 from app.omi_audio import OmiAudioError
 from app.services.audio_service import save_omi_opus_audio, save_pcm_audio
+from app.services.analysis_service import transcript_russian
 
 router = APIRouter(prefix="/data", tags=["audio"])
 
@@ -16,6 +17,7 @@ router = APIRouter(prefix="/data", tags=["audio"])
 async def receive_audio(
     request: Request,
     device_id: UUID,
+    session_id: UUID | None = None,
     sample_rate: int = 16000,
     channels: int = 1,
     sample_width: int = 2,
@@ -35,7 +37,9 @@ async def receive_audio(
     if len(pcm_bytes) % (channels * sample_width) != 0:
         raise HTTPException(400, "PCM byte length does not match channels/sample_width")
 
-    record = save_pcm_audio(device_id, pcm_bytes, sample_rate, channels, sample_width, db)
+    record = save_pcm_audio(device_id, pcm_bytes, sample_rate, channels, sample_width, db, session_id)
+    record.transcript_text, _ = transcript_russian(record.file_path)
+    db.commit()
 
     return {
         "id": record.id,
@@ -47,6 +51,7 @@ async def receive_audio(
 async def receive_omi_opus_audio(
     request: Request,
     device_id: UUID,
+    session_id: UUID | None = None,
     sample_rate: int = 16000,
     codec: int = 20,
     db: Session = Depends(get_db)
@@ -60,9 +65,17 @@ async def receive_omi_opus_audio(
         raise HTTPException(400, "Only Omi Opus codec=20 is supported")
 
     try:
-        record, files = save_omi_opus_audio(device_id, dump_bytes, sample_rate, db)
+        record, files = save_omi_opus_audio(device_id, dump_bytes, sample_rate, db, session_id)
     except OmiAudioError as exc:
         raise HTTPException(400, str(exc)) from exc
+
+    text, asr_note = transcript_russian(files.get("wav_path"))
+    record.transcript_text = text
+    if files.get("wav_path"):
+        transcript_path = Path(files["wav_path"]).with_suffix(".txt")
+        transcript_path.write_text(text or asr_note, encoding="utf-8")
+        record.transcript_path = str(transcript_path)
+    db.commit()
 
     return {
         "id": record.id,

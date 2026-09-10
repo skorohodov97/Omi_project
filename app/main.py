@@ -1,6 +1,6 @@
 from fastapi import FastAPI, Request
 import time
-from app.routers import audio, ring, devices
+from app.routers import audio, ring, devices, sessions
 
 app = FastAPI(title="Audio Backend")
 
@@ -17,6 +17,7 @@ async def log_all(request: Request, call_next):
 app.include_router(devices.router)
 app.include_router(ring.router)
 app.include_router(audio.router)
+app.include_router(sessions.router)
 
 
 @app.get("/health")

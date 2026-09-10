@@ -12,7 +12,7 @@ def save_pcm_audio(
     sample_rate: int,
     channels: int,
     sample_width: int,
-    db: Session
+    db: Session, session_id=None
 ):
     timestamp = datetime.utcnow()
 
@@ -33,7 +33,7 @@ def save_pcm_audio(
         sample_rate=sample_rate,
         channels=channels,
         sample_width=sample_width,
-        duration_ms=int(len(pcm_bytes) / (sample_rate * channels * sample_width) * 1000)
+        duration_ms=int(len(pcm_bytes) / (sample_rate * channels * sample_width) * 1000), session_id=session_id
     )
 
     db.add(record)
@@ -43,7 +43,7 @@ def save_pcm_audio(
     return record
 
 
-def save_omi_opus_audio(device_id, dump_bytes: bytes, sample_rate: int, db: Session):
+def save_omi_opus_audio(device_id, dump_bytes: bytes, sample_rate: int, db: Session, session_id=None):
     timestamp = datetime.utcnow()
 
     device_folder = BASE_AUDIO_DIR / str(device_id)
@@ -71,7 +71,7 @@ def save_omi_opus_audio(device_id, dump_bytes: bytes, sample_rate: int, db: Sess
         sample_rate=sample_rate,
         channels=1,
         sample_width=2 if wav_created else None,
-        duration_ms=int(len(frames) * 160 / sample_rate * 1000)
+        duration_ms=int(len(frames) * 160 / sample_rate * 1000), session_id=session_id
     )
 
     db.add(record)

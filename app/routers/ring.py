@@ -7,6 +7,7 @@ from uuid import UUID
 from app.db import get_db
 from app.services.ring_service import save_ring_file
 from app import models
+from app.services.analysis_service import decode_colmi_r10
 
 router = APIRouter(prefix="/data", tags=["ring"])
 
@@ -15,6 +16,7 @@ router = APIRouter(prefix="/data", tags=["ring"])
 async def receive_ring(
     request: Request,
     device_id: UUID,
+    session_id: UUID | None = None,
     db: Session = Depends(get_db)
 ):
     # проверяем устройство
@@ -31,7 +33,11 @@ async def receive_ring(
     if not file_bytes:
         raise HTTPException(400, "Empty ring file")
 
-    record = save_ring_file(device_id, file_bytes, db)
+    if session_id and not db.get(models.RecordingSession, session_id):
+        raise HTTPException(404, "Session not found")
+    record = save_ring_file(device_id, file_bytes, db, session_id)
+    decode_colmi_r10(file_bytes, record.id, record.created_at, db)
+    db.commit()
 
     return {
         "id": record.id,

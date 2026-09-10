@@ -5,7 +5,7 @@ from app.models import RingRecord
 from app.config import BASE_RING_DIR
 
 
-def save_ring_file(device_id, file_bytes: bytes, db: Session):
+def save_ring_file(device_id, file_bytes: bytes, db: Session, session_id=None):
 
     timestamp = datetime.utcnow()
 
@@ -24,7 +24,7 @@ def save_ring_file(device_id, file_bytes: bytes, db: Session):
         device_id=device_id,
         file_path=str(file_path),
         file_size=len(file_bytes),
-        created_at=timestamp
+        created_at=timestamp, session_id=session_id
     )
 
     db.add(record)
